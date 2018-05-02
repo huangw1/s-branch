@@ -9,6 +9,43 @@
 const exec = require('child_process').exec
 const chalk = require('chalk')
 const commander = require('commander')
+const yellow = chalk.yellow
+const green = chalk.green
+const red = chalk.red
+
+
+const logger = {
+	success(...params) {
+		console.info(green(...params))
+	},
+	info(...params) {
+		console.info(yellow(...params))
+	},
+	error(...params) {
+		console.error(red(...params))
+	},
+	warn(...params) {
+		console.warn(yellow(...params))
+	}
+}
+exports.logger = logger
+
+
+const promisify = (fn) => {
+	return (...params) => {
+		return new Promise((resolve, reject) => {
+			fn(...params, (error, ...rest) => {
+				if(error) {
+					logger.error(error)
+					return reject(error)
+				}
+				return resolve(...rest)
+			})
+		})
+	}
+}
+exports.exec = promisify(exec)
+
 
 const getCurrentTime = (date, separator) => {
 	const addZero = (num) => {
@@ -24,20 +61,13 @@ const getCurrentTime = (date, separator) => {
 	const day = addZero(date.getDate())
 	return `${year}${separator}${month}${separator}${day}`
 }
-
-const isCurrentBranch = (name) => {
-	const currentBranchCMD = 'git rev-parse --abbrev-ref HEAD'
-	return new Promise((resolve, reject) => {
-		exec(currentBranchCMD, (error, branchName) => {
-			if (error) {
-				console.error(chalk.red(error))
-				return reject(error)
-			}
-			resolve(branchName.trim() == name.trim())
-		})
-	})
-}
-
 exports.getCurrentTime = getCurrentTime
+
+
+const isCurrentBranch = async (name) => {
+	const currentBranchCMD = 'git rev-parse --abbrev-ref HEAD'
+	const branchName = await exports.exec(currentBranchCMD)
+	return (branchName.trim() == name.trim())
+}
 exports.isCurrentBranch = isCurrentBranch
 
