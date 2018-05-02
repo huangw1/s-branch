@@ -11,9 +11,6 @@ const commander = require('commander')
 const util = require('../util')
 const pkg = require('../package.json')
 
-const CREATE_DESC = 'input the branch name, then a branch like feature/{name}_{YYYY-MM-DD} will be created'
-const CREATE_MISSING_PARAM = 'missing project name'
-
 const isCurrentBranch = util.isCurrentBranch
 const getCurrentTime = util.getCurrentTime
 const logger = util.logger
@@ -23,10 +20,10 @@ const exec = util.exec
 commander
 	.version(pkg.version)
 	.command('create <name>')
-	.description(CREATE_DESC)
+	.description('input the branch name, then a branch like feature/{name}_{YYYY-MM-DD} will be created')
 	.action(async (name) => {
 		if (!name) {
-			logger.error(CREATE_MISSING_PARAM)
+			logger.error('missing project name')
 			return null
 		}
 
@@ -44,6 +41,49 @@ commander
 		if(result) {
 			logger.success(branchName)
 		}
+	})
+
+
+commander
+	.version(pkg.version)
+	.command('delete <name>')
+	.description('input the branch name, then a matched branch will be deleted')
+	.action(async (name) => {
+		if (!name) {
+			logger.error('missing project name')
+			return null
+		}
+
+		const listBranchCMD = 'git br'
+		const regexp = new RegExp(`feature\/${name}\_\\d{4}\-\\d{2}-\\d{2}`, 'g')
+		const branches = await exec(listBranchCMD)
+		const branchList = branches.split('\n')
+		const matchedBranches = []
+		branchList.forEach((branch) => {
+			let matched
+			if((matched = branch.match(regexp)) != null) {
+				matchedBranches.push(matched[0])
+			}
+		})
+		if(!matchedBranches.length) {
+			return logger.success('there is not a matched branch')
+		}
+
+		const matchedBranch = matchedBranches[0]
+		const isCurrent = await isCurrentBranch(matchedBranch)
+		if(isCurrent) {
+			logger.info('being the current branch')
+			logger.info('checkout master')
+
+			const checkoutMasterCMD = 'git checkout master'
+			exec(checkoutMasterCMD)
+		}
+
+		const deleteBranchCMD = `git branch -D ${matchedBranch}`
+		const deleteRemoteBranchCMD = `git push -d origin ${matchedBranch}`
+		await exec(deleteBranchCMD)
+		await exec(deleteRemoteBranchCMD)
+		logger.success(`delete ${matchedBranch}`)
 	})
 
 commander.parse(process.argv)

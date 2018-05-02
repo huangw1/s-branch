@@ -13,7 +13,9 @@ const yellow = chalk.yellow
 const green = chalk.green
 const red = chalk.red
 
-
+/**
+ * 日志打印
+ */
 const logger = {
 	success(...params) {
 		console.info(green(...params))
@@ -22,15 +24,16 @@ const logger = {
 		console.info(yellow(...params))
 	},
 	error(...params) {
-		console.error(red(...params))
-	},
-	warn(...params) {
-		console.warn(yellow(...params))
+		console.info(red(...params))
 	}
 }
 exports.logger = logger
 
-
+/**
+ * 回调包装为 Promise
+ * @param fn
+ * @returns {function(...[*])}
+ */
 const promisify = (fn) => {
 	return (...params) => {
 		return new Promise((resolve, reject) => {
@@ -46,14 +49,17 @@ const promisify = (fn) => {
 }
 exports.exec = promisify(exec)
 
-
+/**
+ * 获取格式化时间
+ * @param date
+ * @param separator
+ * @returns {string}
+ */
 const getCurrentTime = (date, separator) => {
 	const addZero = (num) => {
-		if (num < 10) {
-			return '0' + num
-		}
-		return num
+		return Number(num) < 10? '0' + num: num
 	}
+
 	date = date || new Date()
 	separator = separator || '-'
 	const year = date.getFullYear()
@@ -63,11 +69,19 @@ const getCurrentTime = (date, separator) => {
 }
 exports.getCurrentTime = getCurrentTime
 
-
+/**
+ * 是否为当前分支
+ * @param name
+ * @returns {Promise.<boolean>}
+ */
 const isCurrentBranch = async (name) => {
+	const trim = (str) => {
+		return String(str).trim()
+	}
+
 	const currentBranchCMD = 'git rev-parse --abbrev-ref HEAD'
 	const branchName = await exports.exec(currentBranchCMD)
-	return (branchName.trim() == name.trim())
+	return (trim(branchName) == trim(name))
 }
 exports.isCurrentBranch = isCurrentBranch
 
