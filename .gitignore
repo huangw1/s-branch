@@ -1,0 +1,20 @@
+# NPM
+/node_modules/
+/npm-debug.log
+
+# Build
+/build
+/dist
+/.release
+/dev/build
+/dev/.release
+
+# Test
+/test/screenshot
+
+# SASS cache
+.sass-cache/
+
+# Global (additional insurance for someone who haven't add this in global gitignore)
+.DS_Store
+/.idea
