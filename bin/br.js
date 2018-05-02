@@ -8,6 +8,8 @@
 
 const chalk = require('chalk')
 const commander = require('commander')
+const ora = require('ora')
+
 const util = require('../util')
 const pkg = require('../package.json')
 
@@ -15,6 +17,7 @@ const isCurrentBranch = util.isCurrentBranch
 const getCurrentTime = util.getCurrentTime
 const logger = util.logger
 const exec = util.exec
+const cyan = chalk.cyan
 
 
 commander
@@ -37,10 +40,10 @@ commander
 		const pushBranchCMD = `git push --set-upstream origin ${branchName}`
 		const execCMD = isMaster? `${createBranchCMD} && ${pushBranchCMD}`: `${checkoutMasterCMD} && ${createBranchCMD} && ${pushBranchCMD}`
 
-		const result = await exec(execCMD)
-		if(result) {
-			logger.success(branchName)
-		}
+		const spinner = ora(cyan('')).start()
+		await exec(execCMD)
+		spinner.stop()
+		logger.success(`already create ${branchName}`)
 	})
 
 
@@ -79,15 +82,20 @@ commander
 			exec(checkoutMasterCMD)
 		}
 
-		const deleteBranchCMD = `git branch -D ${matchedBranch}`
+		const deleteBranchCMD = `git branch -d ${matchedBranch}`
 		const deleteRemoteBranchCMD = `git push -d origin ${matchedBranch}`
-		await exec(deleteBranchCMD)
+
+		const spinner = ora(cyan('')).start()
 		await exec(deleteRemoteBranchCMD)
-		logger.success(`delete ${matchedBranch}`)
+		await exec(deleteBranchCMD)
+		spinner.stop()
+		logger.success(`already delete ${matchedBranch}`)
 	})
 
 commander.parse(process.argv)
 if(commander.args.length === 0) {
 	commander.help()
 }
+
+
 
