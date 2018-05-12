@@ -1,7 +1,9 @@
 # s-branch
-Manage the standardization of branch.
+Branch management.
 
 ```js
-node ./bin/br create <name>
+// f_youwen_test_20180512
+// b_youwen_test_20180512
+node ./bin/br create 
 node ./bin/br delete <name>
 ```
