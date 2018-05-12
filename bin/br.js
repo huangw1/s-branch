@@ -8,94 +8,96 @@
 
 const chalk = require('chalk')
 const commander = require('commander')
+const inquirer = require('inquirer')
 const ora = require('ora')
 
 const util = require('../util')
 const pkg = require('../package.json')
 
-const isCurrentBranch = util.isCurrentBranch
-const getCurrentTime = util.getCurrentTime
-const logger = util.logger
-const exec = util.exec
-const cyan = chalk.cyan
+const { isCurrentBranch, isBranchExit, getCurrentTime, getPinYin, symbol, logger, exec } = util
+const { cyan } = chalk
 
 
 commander
 	.version(pkg.version)
-	.command('create <name>')
-	.description('input the branch name, then a branch like feature/{name}_{YYYY-MM-DD} will be created')
-	.action(async (name) => {
-		if (!name) {
-			logger.error('missing project name')
-			return null
-		}
+	.command('create')
+	.description('select a branch type and input a branch name, then a branch like {类型}_{花名}_{分支名}_{时间戳} will be created')
+	.action(async () => {
+		const { type, branch } = await inquirer.prompt([
+			{
+				type: 'list',
+				name: 'type',
+				message: 'please select branch type?',
+				choices: ['feature', 'bug']
+			},
+			{
+				type: 'input',
+				name: 'branch',
+				message: 'please input branch name:',
+			}
+		])
 
 		const masterName = 'master'
-		const isMaster = await isCurrentBranch(masterName)
-
+		const userNameCMD = 'git config --global user.name'
 		const time = getCurrentTime()
-		const branchName = `feature/${name}_${time}`
+		const userName = getPinYin(await exec(userNameCMD))
+		const branchName = `${type.charAt(0)}_${userName}_${branch}_${time}`
+
+		if(await isBranchExit(branch)) {
+			return logger.error(`${symbol.error} there already had a same branch name`)
+		}
+
 		const checkoutMasterCMD = `git checkout ${masterName}`
 		const createBranchCMD = `git checkout -b ${branchName}`
 		const pushBranchCMD = `git push --set-upstream origin ${branchName}`
+		const isMaster = await isCurrentBranch(masterName)
 		const execCMD = isMaster? `${createBranchCMD} && ${pushBranchCMD}`: `${checkoutMasterCMD} && ${createBranchCMD} && ${pushBranchCMD}`
 
 		const spinner = ora(cyan('')).start()
-		await exec(execCMD)
-		spinner.stop()
-		logger.success(`already create ${branchName}`)
+		try {
+			await exec(execCMD)
+		} finally {
+			spinner.stop()
+		}
+		logger.success(`${symbol.success} already create ${branchName}`)
 	})
 
 
 commander
 	.version(pkg.version)
 	.command('delete <name>')
-	.description('input the branch name, then a matched branch will be deleted')
+	.description('input a branch name, then a matched branch will be deleted')
 	.action(async (name) => {
-		if (!name) {
-			logger.error('missing project name')
-			return null
+
+		let matchedBranch
+		if(!(matchedBranch = await isBranchExit(name))) {
+			return logger.error(`${symbol.error} there is not a matched branch name`)
 		}
 
-		const listBranchCMD = 'git br'
-		const regexp = new RegExp(`feature\/${name}\_\\d{4}\-\\d{2}-\\d{2}`, 'g')
-		const branches = await exec(listBranchCMD)
-		const branchList = branches.split('\n')
-		const matchedBranches = []
-		branchList.forEach((branch) => {
-			let matched
-			if((matched = branch.match(regexp)) != null) {
-				matchedBranches.push(matched[0])
-			}
-		})
-		if(!matchedBranches.length) {
-			return logger.success('there is not a matched branch')
-		}
-
-		const matchedBranch = matchedBranches[0]
 		const isCurrent = await isCurrentBranch(matchedBranch)
 		if(isCurrent) {
 			logger.info('being the current branch')
 			logger.info('checkout master')
 
 			const checkoutMasterCMD = 'git checkout master'
-			exec(checkoutMasterCMD)
+			await exec(checkoutMasterCMD)
 		}
 
-		const deleteBranchCMD = `git branch -d ${matchedBranch}`
 		const deleteRemoteBranchCMD = `git push -d origin ${matchedBranch}`
+		const deleteBranchCMD = `git branch -d ${matchedBranch}`
 
 		const spinner = ora(cyan('')).start()
-		await exec(deleteRemoteBranchCMD)
-		await exec(deleteBranchCMD)
-		spinner.stop()
-		logger.success(`already delete ${matchedBranch}`)
+		try {
+			await exec(deleteRemoteBranchCMD)
+			await exec(deleteBranchCMD)
+		} finally {
+			spinner.stop()
+		}
+		logger.success(`${symbol.success} already delete ${matchedBranch}`)
 	})
 
 commander.parse(process.argv)
 if(commander.args.length === 0) {
 	commander.help()
 }
-
-
 
