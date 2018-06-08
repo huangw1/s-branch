@@ -1,5 +1,5 @@
 # s-branch
-Branch management.
+基于分支规范的管理工具.
 
 ```js
 // f_youwen_test_20180512
