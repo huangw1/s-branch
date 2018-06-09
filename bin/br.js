@@ -2,10 +2,6 @@
  * Created by huangw1 on 2018/5/2.
  */
 
-/**
- * Created by huangw1 on 2018/5/2.
- */
-
 const chalk = require('chalk')
 const commander = require('commander')
 const inquirer = require('inquirer')
